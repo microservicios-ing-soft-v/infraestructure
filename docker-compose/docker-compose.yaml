@@ -1,0 +1,45 @@
+name: microservices
+
+services:
+  zipkin:
+    image: ghcr.io/openzipkin/zipkin-slim:${TAG:-latest}
+    container_name: zipkin
+    environment:
+      - STORAGE_TYPE=mem
+      - MYSQL_HOST=mysql
+    ports:
+      - 9411:9411
+    networks:
+      - microservices-network
+  users-api:
+    image: users-api
+    container_name: users-api
+    ports:
+      - 8084:8084
+    environment:
+      - SERVER_PORT=8084
+      - JWT_SECRET=PRFT
+      - ZIPKIN_URL=http://zipkin:9411/
+    depends_on:
+      - zipkin
+    networks:
+      - microservices-network
+  auth-api:
+    image: auth-api
+    container_name: auth-api
+    ports:
+      - 8000:8000
+    environment:
+      - AUTH_API_PORT=8000
+      - JWT_SECRET=PRFT
+      - USERS_API_ADDRESS=http://users-api:8084
+      - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+    depends_on:
+      - zipkin
+      - users-api
+    networks:
+      - microservices-network
+
+networks:
+  microservices-network:
+    driver: bridge
