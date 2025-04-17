@@ -11,7 +11,7 @@ services:
       - 9411:9411
     networks:
       - microservices-network
-  
+
   redis:
     image: redis:6-alpine
     container_name: redis
@@ -19,7 +19,7 @@ services:
       - 6379:6379
     networks:
       - microservices-network
-  
+
   users-api:
     image: users-api
     container_name: users-api
@@ -33,7 +33,7 @@ services:
       - zipkin
     networks:
       - microservices-network
-  
+
   auth-api:
     image: auth-api
     container_name: auth-api
@@ -49,7 +49,7 @@ services:
       - users-api
     networks:
       - microservices-network
-  
+
   todos-api:
     image: todos-api
     container_name: todos-api
@@ -66,7 +66,7 @@ services:
       - zipkin
     networks:
       - microservices-network
-  
+
   log-message-processor:
     image: log-message-processor
     container_name: log-message-processor
@@ -80,7 +80,7 @@ services:
       - zipkin
     networks:
       - microservices-network
-  
+
   frontend:
     image: frontend
     container_name: frontend
