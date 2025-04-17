@@ -11,6 +11,15 @@ services:
       - 9411:9411
     networks:
       - microservices-network
+
+  redis:
+    image: redis:6-alpine
+    container_name: redis
+    ports:
+      - 6379:6379
+    networks:
+      - microservices-network
+
   users-api:
     image: users-api
     container_name: users-api
@@ -24,6 +33,7 @@ services:
       - zipkin
     networks:
       - microservices-network
+
   auth-api:
     image: auth-api
     container_name: auth-api
@@ -37,6 +47,49 @@ services:
     depends_on:
       - zipkin
       - users-api
+    networks:
+      - microservices-network
+
+  todos-api:
+    image: todos-api
+    container_name: todos-api
+    ports:
+      - 8082:8082
+    environment:
+      - TODO_API_PORT=8082
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_CHANNEL=log_channel
+      - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+    depends_on:
+      - redis
+      - zipkin
+    networks:
+      - microservices-network
+
+  log-message-processor:
+    image: log-message-processor
+    container_name: log-message-processor
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_CHANNEL=log_channel
+      - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+    depends_on:
+      - redis
+      - zipkin
+    networks:
+      - microservices-network
+
+  frontend:
+    image: frontend
+    container_name: frontend
+    ports:
+      - 80:80
+    depends_on:
+      - auth-api
+      - users-api
+      - todos-api
     networks:
       - microservices-network
 
