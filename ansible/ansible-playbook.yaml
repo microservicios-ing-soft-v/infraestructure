@@ -1,12 +1,7 @@
 ---
-- name: Deploy application with Docker Compose
+- name: Install docker in virtual machine
   hosts: app
   become: true
-
-  vars:
-    repo_url: "https://github.com/microservicios-ing-soft-v/infraestructure"
-    project_path: "/opt/my-app"
-    docker_compose_path: "{{ project_path }}/docker-compose"
 
   tasks:
     - name: Install system dependencies
@@ -18,25 +13,7 @@
         state: present
         update_cache: true
 
-    - name: Clone app repository
-      git:
-        repo: "{{ repo_url }}"
-        dest: "{{ project_path }}"
-        version: main
-        force: yes
-
     - name: Ensure permissions for the Docker socket
       file:
         path: /var/run/docker.sock
         mode: '0666'
-
-    - name: Ensure the docker-compose directory exists
-      file:
-        path: "{{ docker_compose_path }}"
-        state: directory
-        mode: '0755'
-
-    - name: Start containers with docker-compose
-      command: docker-compose up -d
-      args:
-        chdir: "{{ docker_compose_path }}"
