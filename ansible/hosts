@@ -1,0 +1,2 @@
+[app]
+mi-servidor ansible_host=13.90.172.73 ansible_user=azureuser ansible_ssh_pass=Password@1234
