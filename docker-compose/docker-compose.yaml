@@ -1,6 +1,15 @@
-name: microservices
-
 services:
+  redis:
+    image: redis:7.0-alpine
+    container_name: redis
+    restart: always
+    ports:
+      - 6379:6379
+    command: redis-server --save 20 1 --loglevel warning
+    volumes:
+      - cache:/data
+    networks:
+      - mynetwork
   zipkin:
     image: ghcr.io/openzipkin/zipkin-slim:${TAG:-latest}
     container_name: zipkin
@@ -10,89 +19,86 @@ services:
     ports:
       - 9411:9411
     networks:
-      - microservices-network
-
-  redis:
-    image: redis:6-alpine
-    container_name: redis
-    ports:
-      - 6379:6379
-    networks:
-      - microservices-network
-
+      - mynetwork
   users-api:
     image: users-api
     container_name: users-api
     ports:
-      - 8084:8084
-    environment:
-      - SERVER_PORT=8084
-      - JWT_SECRET=PRFT
-      - ZIPKIN_URL=http://zipkin:9411/
+      - 8083:8083
+    volumes:
+      - users_data:/app/data
     depends_on:
       - zipkin
     networks:
-      - microservices-network
-
+      - mynetwork
+    environment:
+      - JWT_SECRET=PRFT
+      - SERVER_PORT=8083
+      - ZIPKIN_URL=http://zipkin:9411/
   auth-api:
     image: auth-api
     container_name: auth-api
     ports:
       - 8000:8000
-    environment:
-      - AUTH_API_PORT=8000
-      - JWT_SECRET=PRFT
-      - USERS_API_ADDRESS=http://users-api:8084
-      - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
     depends_on:
-      - zipkin
       - users-api
+      - zipkin
     networks:
-      - microservices-network
-
+      - mynetwork
+    environment:
+      - JWT_SECRET=PRFT
+      - AUTH_API_PORT=8000
+      - USERS_API_ADDRESS=http://users-api:8083
+      - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
   todos-api:
     image: todos-api
     container_name: todos-api
     ports:
       - 8082:8082
+    depends_on:
+      - redis
+      - zipkin
+    networks:
+      - mynetwork
     environment:
+      - JWT_SECRET=PRFT
       - TODO_API_PORT=8082
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_CHANNEL=log_channel
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
-    depends_on:
-      - redis
-      - zipkin
-    networks:
-      - microservices-network
-
-  log-message-processor:
-    image: log-message-processor
-    container_name: log-message-processor
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_CHANNEL=log_channel
-      - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
-    depends_on:
-      - redis
-      - zipkin
-    networks:
-      - microservices-network
-
   frontend:
     image: frontend
     container_name: frontend
     ports:
-      - 80:80
+      - 8080:8080
     depends_on:
       - auth-api
-      - users-api
       - todos-api
+      - zipkin
     networks:
-      - microservices-network
-
+      - mynetwork
+    environment:
+      - AUTH_API_ADDRESS=http://auth-api:8000
+      - TODOS_API_ADDRESS=http://todos-api:8082
+      - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+  log-message-processor:
+    image: log-message-processor
+    container_name: log-message-processor
+    depends_on:
+      - redis
+      - zipkin
+    networks:
+      - mynetwork
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_CHANNEL=log_channel
+      - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
 networks:
-  microservices-network:
+  mynetwork:
     driver: bridge
+volumes:
+  cache:
+    driver: local
+  users_data:
+    driver: local
