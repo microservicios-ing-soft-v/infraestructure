@@ -1,0 +1,136 @@
+name: Infrastructure Pipeline
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'terraform/**'
+      - 'ansible/**'
+      - 'docker-compose.yml'
+  workflow_dispatch:
+
+jobs:
+  terraform:
+    name: 'Terraform'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.0.0
+        
+    - name: Terraform Init
+      working-directory: ./terraform
+      run: terraform init
+      env:
+        ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        
+    - name: Terraform Validate
+      working-directory: ./terraform
+      run: terraform validate
+      
+    - name: Terraform Plan
+      working-directory: ./terraform
+      run: terraform plan
+      env:
+        ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        
+    - name: Terraform Apply
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      working-directory: ./terraform
+      run: terraform apply -auto-approve
+      env:
+        ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+        ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+        ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        
+    - name: Extract VM IP Address
+      id: vm-ip
+      working-directory: ./terraform
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        echo "VM_IP=$(terraform output -raw vm_public_ip)" >> $GITHUB_OUTPUT
+      
+  ansible:
+    name: 'Ansible'
+    needs: terraform
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install Ansible
+      run: |
+        python -m pip install --upgrade pip
+        pip install ansible
+        
+    - name: Setup SSH key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ needs.terraform.outputs.VM_IP }} >> ~/.ssh/known_hosts
+        
+    - name: Update Ansible hosts file
+      run: |
+        echo "[vm]" > ansible/hosts
+        echo "${{ needs.terraform.outputs.VM_IP }} ansible_user=azureuser ansible_ssh_private_key_file=~/.ssh/id_rsa" >> ansible/hosts
+        
+    - name: Run Ansible playbook
+      working-directory: ./ansible
+      run: ansible-playbook -i hosts ansible-playbook.yaml
+      
+  deploy:
+    name: 'Deploy Application'
+    needs: [terraform, ansible]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup SSH key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ needs.terraform.outputs.VM_IP }} >> ~/.ssh/known_hosts
+        
+    - name: Configure ACR credentials on VM
+      run: |
+        ssh azureuser@${{ needs.terraform.outputs.VM_IP }} "docker login ${{ secrets.ACR_LOGIN_SERVER }} -u ${{ secrets.ACR_USERNAME }} -p ${{ secrets.ACR_PASSWORD }}"
+        
+    - name: Generate .env file with ACR information
+      run: |
+        echo "ACR_LOGIN_SERVER=${{ secrets.ACR_LOGIN_SERVER }}" > .env
+        
+    - name: Copy docker-compose and .env file to VM
+      run: |
+        scp docker-compose.yml .env azureuser@${{ needs.terraform.outputs.VM_IP }}:~/
+        
+    - name: Run docker-compose on VM
+      run: |
+        ssh azureuser@${{ needs.terraform.outputs.VM_IP }} "cd ~/ && docker-compose pull && docker-compose up -d"
+        
+    - name: Verify deployment
+      run: |
+        ssh azureuser@${{ needs.terraform.outputs.VM_IP }} "docker ps"
