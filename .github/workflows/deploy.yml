@@ -1,0 +1,39 @@
+name: Deploy to VM
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'docker-compose.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Install sshpass
+      run: sudo apt-get install -y sshpass
+      
+    - name: Generate .env file
+      run: |
+        echo "ACR_LOGIN_SERVER=ingesoftbarrazadylanacr.azurecr.io" > .env
+        
+    - name: Copy files to VM
+      run: |
+        sshpass -p "Password@1234" scp -o StrictHostKeyChecking=no docker-compose.yml .env azureuser@13.90.172.73:~/
+        
+    - name: Login to ACR on VM
+      run: |
+        sshpass -p "Password@1234" ssh -o StrictHostKeyChecking=no azureuser@13.90.172.73 "docker login ingesoftbarrazadylanacr.azurecr.io -u ingesoftbarrazadylanacr -p ${{ secrets.ACR_PASSWORD }}"
+        
+    - name: Deploy application
+      run: |
+        sshpass -p "Password@1234" ssh -o StrictHostKeyChecking=no azureuser@13.90.172.73 "cd ~/ && docker-compose pull && docker-compose up -d"
+        
+    - name: Verify deployment
+      run: |
+        sshpass -p "Password@1234" ssh -o StrictHostKeyChecking=no azureuser@13.90.172.73 "docker ps"
