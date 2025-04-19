@@ -13,6 +13,8 @@ jobs:
   terraform:
     name: 'Terraform'
     runs-on: ubuntu-latest
+    outputs:
+      vm_ip: ${{ steps.vm-ip.outputs.VM_IP }}
     
     steps:
     - name: Checkout code
@@ -57,8 +59,8 @@ jobs:
         
     - name: Extract VM IP Address
       id: vm-ip
-      working-directory: ./terraform
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      working-directory: ./terraform
       run: |
         echo "VM_IP=$(terraform output -raw vm_public_ip)" >> $GITHUB_OUTPUT
       
@@ -87,12 +89,12 @@ jobs:
         mkdir -p ~/.ssh
         echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ needs.terraform.outputs.VM_IP }} >> ~/.ssh/known_hosts
+        ssh-keyscan -H ${{ needs.terraform.outputs.vm_ip }} >> ~/.ssh/known_hosts
         
     - name: Update Ansible hosts file
       run: |
         echo "[vm]" > ansible/hosts
-        echo "${{ needs.terraform.outputs.VM_IP }} ansible_user=azureuser ansible_ssh_private_key_file=~/.ssh/id_rsa" >> ansible/hosts
+        echo "${{ needs.terraform.outputs.vm_ip }} ansible_user=azureuser ansible_ssh_private_key_file=~/.ssh/id_rsa" >> ansible/hosts
         
     - name: Run Ansible playbook
       working-directory: ./ansible
@@ -113,11 +115,11 @@ jobs:
         mkdir -p ~/.ssh
         echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ needs.terraform.outputs.VM_IP }} >> ~/.ssh/known_hosts
+        ssh-keyscan -H ${{ needs.terraform.outputs.vm_ip }} >> ~/.ssh/known_hosts
         
     - name: Configure ACR credentials on VM
       run: |
-        ssh azureuser@${{ needs.terraform.outputs.VM_IP }} "docker login ${{ secrets.ACR_LOGIN_SERVER }} -u ${{ secrets.ACR_USERNAME }} -p ${{ secrets.ACR_PASSWORD }}"
+        ssh azureuser@${{ needs.terraform.outputs.vm_ip }} "docker login ${{ secrets.ACR_LOGIN_SERVER }} -u ${{ secrets.ACR_USERNAME }} -p ${{ secrets.ACR_PASSWORD }}"
         
     - name: Generate .env file with ACR information
       run: |
@@ -125,12 +127,12 @@ jobs:
         
     - name: Copy docker-compose and .env file to VM
       run: |
-        scp docker-compose.yml .env azureuser@${{ needs.terraform.outputs.VM_IP }}:~/
+        scp docker-compose.yml .env azureuser@${{ needs.terraform.outputs.vm_ip }}:~/
         
     - name: Run docker-compose on VM
       run: |
-        ssh azureuser@${{ needs.terraform.outputs.VM_IP }} "cd ~/ && docker-compose pull && docker-compose up -d"
+        ssh azureuser@${{ needs.terraform.outputs.vm_ip }} "cd ~/ && docker-compose pull && docker-compose up -d"
         
     - name: Verify deployment
       run: |
-        ssh azureuser@${{ needs.terraform.outputs.VM_IP }} "docker ps"
+        ssh azureuser@${{ needs.terraform.outputs.vm_ip }} "docker ps"

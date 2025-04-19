@@ -21,7 +21,7 @@ services:
     networks:
       - mynetwork
   users-api:
-    image: users-api
+    image: ${ACR_LOGIN_SERVER}/users-api:latest
     container_name: users-api
     ports:
       - 8083:8083
@@ -36,7 +36,7 @@ services:
       - SERVER_PORT=8083
       - ZIPKIN_URL=http://zipkin:9411/
   auth-api:
-    image: auth-api
+    image: ${ACR_LOGIN_SERVER}/auth-api:latest
     container_name: auth-api
     ports:
       - 8000:8000
@@ -51,7 +51,7 @@ services:
       - USERS_API_ADDRESS=http://users-api:8083
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
   todos-api:
-    image: todos-api
+    image: ${ACR_LOGIN_SERVER}/todos-api:latest
     container_name: todos-api
     ports:
       - 8082:8082
@@ -67,7 +67,7 @@ services:
       - REDIS_PORT=6379
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
   frontend:
-    image: frontend
+    image: ${ACR_LOGIN_SERVER}/frontend:latest
     container_name: frontend
     ports:
       - 8080:8080
@@ -82,7 +82,7 @@ services:
       - TODOS_API_ADDRESS=http://todos-api:8082
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
   log-message-processor:
-    image: log-message-processor
+    image: ${ACR_LOGIN_SERVER}/log-message-processor:latest
     container_name: log-message-processor
     depends_on:
       - redis
