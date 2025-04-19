@@ -14,9 +14,20 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
-      
+    
     - name: Install sshpass
       run: sudo apt-get install -y sshpass
+    
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    
+    - name: Get ACR credentials
+      id: get-acr-creds
+      run: |
+        ACR_PASSWORD=$(az acr credential show --name ingesoftbarrazadylanacr --query "passwords[0].value" -o tsv)
+        echo "ACR_PASSWORD=$ACR_PASSWORD" >> $GITHUB_OUTPUT
       
     - name: Generate .env file
       run: |
@@ -26,13 +37,9 @@ jobs:
       run: |
         sshpass -p "Password@1234" scp -o StrictHostKeyChecking=no docker-compose.yml .env azureuser@13.90.172.73:~/
         
-    - name: Login to ACR on VM
+    - name: Login to ACR on VM and deploy
       run: |
-        sshpass -p "Password@1234" ssh -o StrictHostKeyChecking=no azureuser@13.90.172.73 "docker login ingesoftbarrazadylanacr.azurecr.io -u ingesoftbarrazadylanacr -p ${{ secrets.ACR_PASSWORD }}"
-        
-    - name: Deploy application
-      run: |
-        sshpass -p "Password@1234" ssh -o StrictHostKeyChecking=no azureuser@13.90.172.73 "cd ~/ && docker-compose pull && docker-compose up -d"
+        sshpass -p "Password@1234" ssh -o StrictHostKeyChecking=no azureuser@13.90.172.73 "docker login ingesoftbarrazadylanacr.azurecr.io -u ingesoftbarrazadylanacr -p '${{ steps.get-acr-creds.outputs.ACR_PASSWORD }}' && cd ~/ && docker-compose pull && docker-compose up -d"
         
     - name: Verify deployment
       run: |
