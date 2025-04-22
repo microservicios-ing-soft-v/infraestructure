@@ -94,6 +94,22 @@ services:
       - REDIS_PORT=6379
       - REDIS_CHANNEL=log_channel
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+  api-gateway:
+    image: ${ACR_LOGIN_SERVER}/api-gateway:latest
+    container_name: api-gateway
+    ports:
+      - 8090:8090
+    depends_on:
+      - auth-api
+      - todos-api
+      - users-api
+    networks:
+      - mynetwork
+    environment:
+      - AUTH_API_ADDRESS=http://auth-api:8000
+      - USERS_API_ADDRESS=http://users-api:8083
+      - TODOS_API_ADDRESS=http://todos-api:8082
+      - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
 networks:
   mynetwork:
     driver: bridge
