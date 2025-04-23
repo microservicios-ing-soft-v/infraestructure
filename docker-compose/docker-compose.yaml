@@ -21,7 +21,7 @@ services:
     networks:
       - mynetwork
   users-api:
-    image: users-api
+    image: ${ACR_LOGIN_SERVER}/users-api:latest
     container_name: users-api
     ports:
       - 8083:8083
@@ -35,8 +35,14 @@ services:
       - JWT_SECRET=PRFT
       - SERVER_PORT=8083
       - ZIPKIN_URL=http://zipkin:9411/
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
   auth-api:
-    image: auth-api
+    image: ${ACR_LOGIN_SERVER}/auth-api:latest
     container_name: auth-api
     ports:
       - 8000:8000
@@ -50,8 +56,14 @@ services:
       - AUTH_API_PORT=8000
       - USERS_API_ADDRESS=http://users-api:8083
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
   todos-api:
-    image: todos-api
+    image: ${ACR_LOGIN_SERVER}/todos-api:latest
     container_name: todos-api
     ports:
       - 8082:8082
@@ -66,8 +78,14 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
   frontend:
-    image: frontend
+    image: ${ACR_LOGIN_SERVER}/frontend:latest
     container_name: frontend
     ports:
       - 8080:8080
@@ -82,7 +100,7 @@ services:
       - TODOS_API_ADDRESS=http://todos-api:8082
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
   log-message-processor:
-    image: log-message-processor
+    image: ${ACR_LOGIN_SERVER}/log-message-processor:latest
     container_name: log-message-processor
     depends_on:
       - redis
@@ -93,6 +111,22 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_CHANNEL=log_channel
+      - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+  api-gateway:
+    image: ${ACR_LOGIN_SERVER}/api-gateway:latest
+    container_name: api-gateway
+    ports:
+      - 8090:8090
+    depends_on:
+      - auth-api
+      - todos-api
+      - users-api
+    networks:
+      - mynetwork
+    environment:
+      - AUTH_API_ADDRESS=http://auth-api:8000
+      - USERS_API_ADDRESS=http://users-api:8083
+      - TODOS_API_ADDRESS=http://todos-api:8082
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
 networks:
   mynetwork:
