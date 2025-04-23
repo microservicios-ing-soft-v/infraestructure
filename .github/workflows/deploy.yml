@@ -86,7 +86,7 @@ jobs:
           # Usa ssh-keyscan para obtener la huella digital de la VM y añadirla a known_hosts
           # -H hashea la huella digital para mayor privacidad
           ssh-keyscan -H ${{ steps.tf_outputs.outputs.vm_public_ip }} >> ~/.ssh/known_hosts
-        shell: /usr/bin/bash
+        shell: bash
 
       - name: Generate Ansible Inventory
         run: |
