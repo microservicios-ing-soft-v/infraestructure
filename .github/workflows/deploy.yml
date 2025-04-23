@@ -80,6 +80,14 @@ jobs:
       - name: Install Ansible
         run: pip install ansible
 
+      - name: Add VM Host Key to Known Hosts
+        run: |
+          mkdir -p ~/.ssh # Asegura que el directorio .ssh existe
+          # Usa ssh-keyscan para obtener la huella digital de la VM y añadirla a known_hosts
+          # -H hashea la huella digital para mayor privacidad
+          ssh-keyscan -H ${{ steps.tf_outputs.outputs.vm_public_ip }} >> ~/.ssh/known_hosts
+        shell: /usr/bin/bash
+
       - name: Generate Ansible Inventory
         run: |
           echo "[app]" > /tmp/ansible_hosts
