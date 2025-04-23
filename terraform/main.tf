@@ -87,7 +87,7 @@ resource "azurerm_linux_virtual_machine" "main" {
   }
 
   identity {
-    type = "SystemAssigned" # Habilita una identidad asignada por el sistema
+    type = "SystemAssigned"
   }
 
 }
@@ -111,4 +111,5 @@ resource "azurerm_key_vault" "main" {
   resource_group_name = azurerm_resource_group.main.name
   tenant_id           = data.azurerm_client_config.current.tenant_id
   sku_name            = "standard"
+  purge_protection_enabled    = false
 }
