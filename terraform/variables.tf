@@ -1,24 +1,31 @@
+variable "resource_group_name" {
+  description = "Name for resource group"
+  type        = string
+}
+
 variable "location" {
-  description = "Location of the resources in Azure"
+  description = "Azure region where resources will be deployed"
   type        = string
   default     = "East US"
 }
 
 variable "admin_username" {
-  description = "Administrator username for the VM"
+  description = "Username for the VM administrator account"
   type        = string
-  default     = "azureuser"
 }
 
 variable "admin_password" {
-  description = "Administrator user's password"
+  description = "Password for the VM administrator account"
   type        = string
   sensitive   = true
-  default     = "Password@1234"
 }
 
 variable "acr_name" {
-  description = "Name of the Azure Container Registry"
+  description = "Name for the Azure Container Registry"
   type        = string
-  default     = "ingesoftbarrazadylanacr"
+}
+
+variable "key_vault_name" {
+  description = "Name for the Azure Key Vault"
+  type        = string
 }

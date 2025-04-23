@@ -1,5 +1,5 @@
 resource "azurerm_resource_group" "main" {
-  name     = "rg-vm-acr-demo"
+  name     = var.resource_group_name
   location = var.location
 }
 
@@ -93,4 +93,17 @@ resource "azurerm_container_registry" "main" {
   location            = var.location
   sku                 = "Basic"
   admin_enabled       = true
+}
+resource "azurerm_role_assignment" "acr_pull" {
+  principal_id   = azurerm_linux_virtual_machine.main.identity[0].principal_id
+  role_definition_name = "AcrPull"
+  scope          = azurerm_container_registry.main.id
+}
+
+resource "azurerm_key_vault" "main" {
+  name                = var.key_vault_name
+  location            = var.location
+  resource_group_name = azurerm_resource_group.main.name
+  tenant_id           = data.azurerm_client_config.current.tenant_id
+  sku_name            = "standard"
 }

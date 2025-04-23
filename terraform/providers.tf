@@ -1,14 +1,21 @@
 terraform {
+  backend "azurerm" {
+    resource_group_name  = "rg-terraform-state"
+    storage_account_name = "tfstatelsj"
+    container_name       = "tfstate"
+    key                  = "barraza.dylan.tfstate"
+  }
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.0"
+      version = "~> 4.0"
     }
   }
-  required_version = ">= 1.0"
 }
 
 provider "azurerm" {
   features {}
 }
 
+data "azurerm_client_config" "current" {}

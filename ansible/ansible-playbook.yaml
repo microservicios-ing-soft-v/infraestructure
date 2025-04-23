@@ -1,11 +1,17 @@
 ---
-- name: Install docker in virtual machine
+- name: Install Docker and Deploy Application
   hosts: app
   become: true
 
+  vars:
+    repo_clone_url: ""
+    repo_branch: "main"
+    acr_login_server: ""
+    image_tag: "latest"
+
   tasks:
-    - name: Install system dependencies
-      apt:
+    - name: Ensure git, docker.io, and docker-compose are installed
+      ansible.builtin.apt:
         name:
           - git
           - docker.io
@@ -14,6 +20,35 @@
         update_cache: true
 
     - name: Ensure permissions for the Docker socket
-      file:
+      ansible.builtin.file:
         path: /var/run/docker.sock
         mode: '0666'
+
+    - name: Ensure docker service is running and enabled
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Clone the infrastructure repository
+      ansible.builtin.git:
+        repo: "{{ repo_clone_url }}"
+        dest: /home/{{ ansible_user }}/infrastructure
+        version: "{{ repo_branch }}"
+        force: yes
+      become: no
+
+    - name: Run docker compose up
+      ansible.builtin.shell: |
+        set -eux
+        cd /home/{{ ansible_user }}/infrastructure/docker-compose/prod
+        export IMAGE_REGISTRY="{{ acr_login_server }}"
+        export IMAGE_TAG="{{ image_tag }}"
+        docker compose up -d
+      args:
+        executable: /bin/bash
+        chdir: "/home/{{ ansible_user }}/infrastructure/docker-compose/prod" # Explicit chdir for clarity
+      become: no
+      environment:
+        IMAGE_REGISTRY: "{{ acr_login_server }}"
+        IMAGE_TAG: "{{ image_tag }}"
