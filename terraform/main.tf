@@ -85,6 +85,10 @@ resource "azurerm_linux_virtual_machine" "main" {
     version   = "latest"
   }
 
+  identity {
+    type = "SystemAssigned" # Habilita una identidad asignada por el sistema
+  }
+
 }
 
 resource "azurerm_container_registry" "main" {
