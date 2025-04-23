@@ -47,7 +47,6 @@ services:
     ports:
       - 8000:8000
     depends_on:
-      - users-api
       - zipkin
     networks:
       - mynetwork
@@ -90,7 +89,6 @@ services:
     ports:
       - 8080:8080
     depends_on:
-      - api-gateway
       - zipkin
     networks:
       - mynetwork
@@ -116,9 +114,6 @@ services:
     container_name: api-gateway
     ports:
       - 8090:8090
-    depends_on:
-      - auth-api
-      - todos-api
     networks:
       - mynetwork
     environment:
