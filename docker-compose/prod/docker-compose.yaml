@@ -21,7 +21,7 @@ services:
     networks:
       - mynetwork
   users-api:
-    image: ${ACR_LOGIN_SERVER}/users-api:latest
+    image: ${IMAGE_REGISTRY}/users-api:${IMAGE_TAG}
     container_name: users-api
     ports:
       - 8083:8083
@@ -42,7 +42,7 @@ services:
       retries: 3
       start_period: 40s
   auth-api:
-    image: ${ACR_LOGIN_SERVER}/auth-api:latest
+    image: ${IMAGE_REGISTRY}/auth-api:${IMAGE_TAG}
     container_name: auth-api
     ports:
       - 8000:8000
@@ -63,7 +63,7 @@ services:
       retries: 3
       start_period: 40s
   todos-api:
-    image: ${ACR_LOGIN_SERVER}/todos-api:latest
+    image: ${IMAGE_REGISTRY}/todos-api:${IMAGE_TAG}
     container_name: todos-api
     ports:
       - 8082:8082
@@ -85,22 +85,21 @@ services:
       retries: 3
       start_period: 40s
   frontend:
-    image: ${ACR_LOGIN_SERVER}/frontend:latest
+    image: ${IMAGE_REGISTRY}/frontend:${IMAGE_TAG}
     container_name: frontend
     ports:
       - 8080:8080
     depends_on:
-      - auth-api
-      - todos-api
+      - api-gateway
       - zipkin
     networks:
       - mynetwork
     environment:
-      - AUTH_API_ADDRESS=http://auth-api:8000
-      - TODOS_API_ADDRESS=http://todos-api:8082
+      - AUTH_API_ADDRESS=http://api-gateway:8090/auth
+      - TODOS_API_ADDRESS=http://api-gateway:8090/todos
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
   log-message-processor:
-    image: ${ACR_LOGIN_SERVER}/log-message-processor:latest
+    image: ${IMAGE_REGISTRY}/log-message-processor:${IMAGE_TAG}
     container_name: log-message-processor
     depends_on:
       - redis
@@ -113,19 +112,17 @@ services:
       - REDIS_CHANNEL=log_channel
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
   api-gateway:
-    image: ${ACR_LOGIN_SERVER}/api-gateway:latest
+    image: ${IMAGE_REGISTRY}/api-gateway:${IMAGE_TAG}
     container_name: api-gateway
     ports:
       - 8090:8090
     depends_on:
       - auth-api
       - todos-api
-      - users-api
     networks:
       - mynetwork
     environment:
       - AUTH_API_ADDRESS=http://auth-api:8000
-      - USERS_API_ADDRESS=http://users-api:8083
       - TODOS_API_ADDRESS=http://todos-api:8082
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
 networks:
