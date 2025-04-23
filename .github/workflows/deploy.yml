@@ -16,7 +16,7 @@ env:
   TF_VAR_key_vault_name: ${{ secrets.KEY_VAULT_NAME }}
   VM_ADMIN_USERNAME: ${{ secrets.VM_ADMIN_USERNAME }}
   VM_ADMIN_PASSWORD: ${{ secrets.VM_ADMIN_PASSWORD }}
-  REPO_CLONE_URL: ${{ github.repositoryUrl }}
+  REPO_CLONE_URL: https://github.com/microservicios-ing-soft-v/infraestructure.git
   REPO_BRANCH: ${{ github.ref_name }}
   IMAGE_TAG: 'latest'
 
@@ -83,8 +83,6 @@ jobs:
       - name: Add VM Host Key to Known Hosts
         run: |
           mkdir -p ~/.ssh # Asegura que el directorio .ssh existe
-          # Usa ssh-keyscan para obtener la huella digital de la VM y añadirla a known_hosts
-          # -H hashea la huella digital para mayor privacidad
           ssh-keyscan -H ${{ steps.tf_outputs.outputs.vm_public_ip }} >> ~/.ssh/known_hosts
         shell: bash
 
