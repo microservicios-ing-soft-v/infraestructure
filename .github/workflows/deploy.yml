@@ -52,7 +52,7 @@ jobs:
 
       - name: Terraform Init
         working-directory: ${{ env.TERRAFORM_DIRECTORY }}
-        run: terraform init
+        run: terraform init -upgrade -input=false
 
       - name: Terraform Apply
         working-directory: ${{ env.TERRAFORM_DIRECTORY }}
