@@ -1,13 +1,18 @@
----
-- name: Install Docker and Deploy Application
+- name: Install Docker Engine, Compose Plugin, and ACR Credential Helper
   hosts: app
   become: true
 
   vars:
     repo_clone_url: ""
     repo_branch: "main"
+    acr_login_server: ""
+    acr_helper_version: "v0.6.0"
+    acr_helper_binary_name: "docker-credential-acr-ecosystem-addon-linux-{{ 'amd64' if ansible_architecture == 'x86_64' else ansible_architecture }}"
+    acr_helper_url: "https://github.com/Azure/acr-credential-helper/releases/download/{{ acr_helper_version }}/{{ acr_helper_binary_name }}"
+    acr_helper_dest_path: "/usr/local/bin/docker-credential-acr-ecosystem-addon"
+
   tasks:
-    - name: Ensure git, docker.io, and docker-compose are installed
+    - name: Ensure system dependencies for Docker are installed
       ansible.builtin.apt:
         name:
           - ca-certificates
@@ -16,7 +21,7 @@
           - git
         state: present
         update_cache: true
-    
+
     - name: Ensure /etc/apt/keyrings exists
       ansible.builtin.file:
         path: /etc/apt/keyrings
@@ -58,6 +63,42 @@
         state: started
         enabled: yes
 
+    - name: Download ACR Credential Helper binary
+      ansible.builtin.get_url:
+        url: "{{ acr_helper_url }}"
+        dest: "/tmp/{{ acr_helper_binary_name }}"
+        mode: '0755'
+
+    - name: Install ACR Credential Helper binary to PATH
+      ansible.builtin.copy:
+        src: "/tmp/{{ acr_helper_binary_name }}"
+        dest: "{{ acr_helper_dest_path }}"
+        remote_src: yes
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Ensure Docker config directory exists for the user
+      ansible.builtin.file:
+        path: "/home/{{ ansible_user }}/.docker"
+        state: directory
+        mode: '0700'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Configure Docker to use ACR Credential Helper for the registry
+      ansible.builtin.copy:
+        content: |
+          {
+            "credHelpers": {
+              "{{ acr_login_server }}": "acr-ecosystem-addon"
+            }
+          }
+        dest: "/home/{{ ansible_user }}/.docker/config.json"
+        mode: '0600'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        backup: yes
 
     - name: Clone the infrastructure repository
       ansible.builtin.git:

@@ -99,7 +99,6 @@ jobs:
           --extra-vars "repo_clone_url=${{ env.REPO_CLONE_URL }}"
           --extra-vars "repo_branch=${{ env.REPO_BRANCH }}"
           --extra-vars "acr_login_server=${{ steps.tf_outputs.outputs.acr_login_server }}"
-          --extra-vars "image_tag=${{ env.IMAGE_TAG }}"
 
       - name: Azure Logout
         run: az logout
