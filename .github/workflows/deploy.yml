@@ -1,25 +1,18 @@
-name: Terraform Apply and Configure VM
-
+name: Deploy Container Apps Infrastructure
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 env:
   TERRAFORM_DIRECTORY: './terraform'
-  ANSIBLE_DIRECTORY: './ansible'
   TF_VAR_location: 'East US'
   TF_VAR_resource_group_name: ${{ secrets.RESOURCE_GROUP_NAME }}
-  TF_VAR_admin_username: ${{ secrets.VM_ADMIN_USERNAME }}
-  TF_VAR_admin_password: ${{ secrets.VM_ADMIN_PASSWORD }}
   TF_VAR_acr_name: ${{ secrets.ACR_NAME }}
   TF_VAR_key_vault_name: ${{ secrets.KEY_VAULT_NAME }}
-  VM_ADMIN_USERNAME: ${{ secrets.VM_ADMIN_USERNAME }}
-  VM_ADMIN_PASSWORD: ${{ secrets.VM_ADMIN_PASSWORD }}
-  REPO_CLONE_URL: https://github.com/microservicios-ing-soft-v/infraestructure.git
-  REPO_BRANCH: ${{ github.ref_name }}
-  IMAGE_TAG: 'latest'
-
+  TF_VAR_image_tag: 'latest'
+  TF_VAR_prefix: 'microservice'
   ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
   ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
   ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -28,7 +21,6 @@ env:
 jobs:
   apply_infra:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -62,43 +54,21 @@ jobs:
         working-directory: ${{ env.TERRAFORM_DIRECTORY }}
         id: tf_outputs
         run: |
-          echo "vm_public_ip=$(terraform output -raw vm_public_ip)" >> $GITHUB_OUTPUT
           echo "acr_login_server=$(terraform output -raw acr_login_server)" >> $GITHUB_OUTPUT
+          echo "frontend_url=$(terraform output -raw frontend_url)" >> $GITHUB_OUTPUT
+          echo "api_gateway_url=$(terraform output -raw api_gateway_url)" >> $GITHUB_OUTPUT
+          echo "container_app_environment_default_domain=$(terraform output -raw container_app_environment_default_domain)" >> $GITHUB_OUTPUT
+          echo "zipkin_url=$(terraform output -raw zipkin_url)" >> $GITHUB_OUTPUT
+          echo "redis_hostname=$(terraform output -raw redis_hostname)" >> $GITHUB_OUTPUT
 
-      - name: Save VM Public IP to Azure Key Vault
+      - name: Save Service Info to Azure Key Vault
         run: |
-          az keyvault secret set --vault-name ${{ secrets.KEY_VAULT_NAME }} --name vm-public-ip --value ${{ steps.tf_outputs.outputs.vm_public_ip }}
-        env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-
-      - name: Install Ansible
-        run: pip install ansible
-
-      - name: Add VM Host Key to Known Hosts
-        run: |
-          mkdir -p ~/.ssh # Asegura que el directorio .ssh existe
-          ssh-keyscan -H ${{ steps.tf_outputs.outputs.vm_public_ip }} >> ~/.ssh/known_hosts
-        shell: bash
-
-      - name: Generate Ansible Inventory
-        run: |
-          echo "[app]" > /tmp/ansible_hosts
-          echo "vm_host ansible_host=${{ steps.tf_outputs.outputs.vm_public_ip }} ansible_user=${{ env.VM_ADMIN_USERNAME }} ansible_ssh_pass=${{ env.VM_ADMIN_PASSWORD }}" >> /tmp/ansible_hosts
-          cat /tmp/ansible_hosts # Muestra el inventario generado en los logs
-
-      - name: Run Ansible Playbook
-        working-directory: ${{ env.ANSIBLE_DIRECTORY }}
-        run: >
-          ansible-playbook -i /tmp/ansible_hosts ansible-playbook.yaml
-          --extra-vars "repo_clone_url=${{ env.REPO_CLONE_URL }}"
-          --extra-vars "repo_branch=${{ env.REPO_BRANCH }}"
-          --extra-vars "acr_login_server=${{ steps.tf_outputs.outputs.acr_login_server }}"
+          az keyvault secret set --vault-name ${{ secrets.KEY_VAULT_NAME }} --name acr-login-server --value ${{ steps.tf_outputs.outputs.acr_login_server }}
+          az keyvault secret set --vault-name ${{ secrets.KEY_VAULT_NAME }} --name frontend-url --value ${{ steps.tf_outputs.outputs.frontend_url }}
+          az keyvault secret set --vault-name ${{ secrets.KEY_VAULT_NAME }} --name api-gateway-url --value ${{ steps.tf_outputs.outputs.api_gateway_url }}
+          az keyvault secret set --vault-name ${{ secrets.KEY_VAULT_NAME }} --name container-app-domain --value ${{ steps.tf_outputs.outputs.container_app_environment_default_domain }}
+          az keyvault secret set --vault-name ${{ secrets.KEY_VAULT_NAME }} --name zipkin-url --value ${{ steps.tf_outputs.outputs.zipkin_url }}
+          az keyvault secret set --vault-name ${{ secrets.KEY_VAULT_NAME }} --name redis-hostname --value ${{ steps.tf_outputs.outputs.redis_hostname }}
 
       - name: Azure Logout
         run: az logout
