@@ -1,5 +1,4 @@
-name: Destroy Infrastructure
-
+name: Destroy Container Apps Infrastructure
 on:
   workflow_dispatch:
 
@@ -13,20 +12,30 @@ jobs:
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       TF_VAR_location: 'East US'
       TF_VAR_resource_group_name: ${{ secrets.RESOURCE_GROUP_NAME }}
-      TF_VAR_admin_username: ${{ secrets.VM_ADMIN_USERNAME }}
-      TF_VAR_admin_password: ${{ secrets.VM_ADMIN_PASSWORD }}
       TF_VAR_acr_name: ${{ secrets.ACR_NAME }}
       TF_VAR_key_vault_name: ${{ secrets.KEY_VAULT_NAME }}
+      TF_VAR_image_tag: 'latest'
+      TF_VAR_prefix: 'microservice'
     defaults:
       run:
         working-directory: terraform/
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+            }
+
       - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.8.3"
 
@@ -35,3 +44,17 @@ jobs:
 
       - name: Terraform Destroy
         run: terraform destroy -auto-approve
+
+      - name: Remove Secrets from Key Vault
+        run: |
+          # Delete all the service-related secrets we created
+          az keyvault secret delete --vault-name ${{ secrets.KEY_VAULT_NAME }} --name acr-login-server
+          az keyvault secret delete --vault-name ${{ secrets.KEY_VAULT_NAME }} --name frontend-url
+          az keyvault secret delete --vault-name ${{ secrets.KEY_VAULT_NAME }} --name api-gateway-url
+          az keyvault secret delete --vault-name ${{ secrets.KEY_VAULT_NAME }} --name container-app-domain
+          az keyvault secret delete --vault-name ${{ secrets.KEY_VAULT_NAME }} --name zipkin-url
+          az keyvault secret delete --vault-name ${{ secrets.KEY_VAULT_NAME }} --name redis-hostname
+        continue-on-error: true
+
+      - name: Azure Logout
+        run: az logout
