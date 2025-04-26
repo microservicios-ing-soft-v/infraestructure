@@ -5,17 +5,24 @@ terraform {
     container_name       = "tfstate"
     key                  = "barraza.dylan.tfstate"
   }
-
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 4.0"
+      version = "~> 3.84.0"  # Updated version for Container Apps support
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.5.0"
     }
   }
 }
 
 provider "azurerm" {
-  features {}
+  features {
+    key_vault {
+      purge_soft_delete_on_destroy = true
+    }
+  }
 }
 
 data "azurerm_client_config" "current" {}
