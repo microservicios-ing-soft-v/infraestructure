@@ -161,7 +161,11 @@ resource "azurerm_container_app" "zipkin" {
   }
 }
 
+# --------- SERVICIOS CONDICIONALES ----------
+
 resource "azurerm_container_app" "users_api" {
+  count = var.deploy_services && contains(var.deploy_services_list, "users-api") ? 1 : 0
+  
   name                         = "users-api"
   container_app_environment_id = azurerm_container_app_environment.main.id
   resource_group_name          = azurerm_resource_group.main.name
@@ -223,6 +227,8 @@ resource "azurerm_container_app" "users_api" {
 }
 
 resource "azurerm_container_app" "auth_api" {
+  count = var.deploy_services && contains(var.deploy_services_list, "auth-api") ? 1 : 0
+  
   name                         = "auth-api"
   container_app_environment_id = azurerm_container_app_environment.main.id
   resource_group_name          = azurerm_resource_group.main.name
@@ -257,7 +263,7 @@ resource "azurerm_container_app" "auth_api" {
       }
       
       env {
-        name  = "USERS_API_ADDRESS"
+        name  = "USERS_API_ADDRESS" 
         value = "http://users-api.${azurerm_container_app_environment.main.default_domain}:8083"
       }
       
@@ -279,6 +285,8 @@ resource "azurerm_container_app" "auth_api" {
 }
 
 resource "azurerm_container_app" "todos_api" {
+  count = var.deploy_services && contains(var.deploy_services_list, "todos-api") ? 1 : 0
+  
   name                         = "todos-api"
   container_app_environment_id = azurerm_container_app_environment.main.id
   resource_group_name          = azurerm_resource_group.main.name
@@ -340,6 +348,8 @@ resource "azurerm_container_app" "todos_api" {
 }
 
 resource "azurerm_container_app" "api_gateway" {
+  count = var.deploy_services && contains(var.deploy_services_list, "api-gateway") ? 1 : 0
+  
   name                         = "api-gateway"
   container_app_environment_id = azurerm_container_app_environment.main.id
   resource_group_name          = azurerm_resource_group.main.name
@@ -391,6 +401,8 @@ resource "azurerm_container_app" "api_gateway" {
 }
 
 resource "azurerm_container_app" "frontend" {
+  count = var.deploy_services && contains(var.deploy_services_list, "frontend") ? 1 : 0
+  
   name                         = "frontend"
   container_app_environment_id = azurerm_container_app_environment.main.id
   resource_group_name          = azurerm_resource_group.main.name
@@ -442,6 +454,8 @@ resource "azurerm_container_app" "frontend" {
 }
 
 resource "azurerm_container_app" "log_message_processor" {
+  count = var.deploy_services && contains(var.deploy_services_list, "log-message-processor") ? 1 : 0
+  
   name                         = "log-message-processor"
   container_app_environment_id = azurerm_container_app_environment.main.id
   resource_group_name          = azurerm_resource_group.main.name
