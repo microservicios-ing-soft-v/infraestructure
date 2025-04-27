@@ -30,3 +30,9 @@ variable "image_tag" {
   type        = string
   default     = "latest"
 }
+
+variable "containerapps_environment_name" {
+  description = "Name of the Azure Container Apps environment"
+  type        = string
+  default     = "my-containerapps-env"
+}
