@@ -19,6 +19,6 @@ output "zipkin_url" {
   value = "https://${azurerm_container_app.zipkin.latest_revision_fqdn}"
 }
 
-output "redis_hostname" {
-  value = azurerm_redis_cache.main.hostname
+output "redis_host" {
+  value = "redis.${azurerm_container_app_environment.main.default_domain}"
 }
