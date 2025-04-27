@@ -9,7 +9,7 @@ on:
       deploy_services:
         description: 'Desplegar servicios con imágenes de ACR'
         required: true
-        default: 'false'
+        default: 'true'
         type: choice
         options:
           - 'true'
