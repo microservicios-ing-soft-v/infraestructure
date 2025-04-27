@@ -142,11 +142,23 @@ resource "azurerm_container_app" "zipkin" {
   }
 }
 
+# Container Apps con autenticación ACR
 resource "azurerm_container_app" "users_api" {
   name                         = "users-api"
   container_app_environment_id = azurerm_container_app_environment.main.id
   resource_group_name          = azurerm_resource_group.main.name
   revision_mode                = "Single"
+
+  registry {
+    server               = azurerm_container_registry.main.login_server
+    username             = azurerm_container_registry.main.admin_username
+    password_secret_name = "acr-password"
+  }
+
+  secrets {
+    name  = "acr-password"
+    value = azurerm_container_registry.main.admin_password
+  }
 
   template {
     container {
@@ -170,14 +182,12 @@ resource "azurerm_container_app" "users_api" {
         value = "http://zipkin.${azurerm_container_app_environment.main.default_domain}:9411/"
       }
       
-      # El volumen debe configurarse aquí, dentro del bloque container
       volume_mounts {
-        name       = "users-data"
+        name = "users-data"
         path = "/app/data"
       }
     }
     
-    # Y la definición del volumen va aquí, en el bloque template
     volume {
       name         = "users-data"
       storage_type = "EmptyDir"
@@ -199,6 +209,17 @@ resource "azurerm_container_app" "auth_api" {
   container_app_environment_id = azurerm_container_app_environment.main.id
   resource_group_name          = azurerm_resource_group.main.name
   revision_mode                = "Single"
+
+  registry {
+    server               = azurerm_container_registry.main.login_server
+    username             = azurerm_container_registry.main.admin_username
+    password_secret_name = "acr-password"
+  }
+
+  secrets {
+    name  = "acr-password"
+    value = azurerm_container_registry.main.admin_password
+  }
 
   template {
     container {
@@ -244,6 +265,17 @@ resource "azurerm_container_app" "todos_api" {
   container_app_environment_id = azurerm_container_app_environment.main.id
   resource_group_name          = azurerm_resource_group.main.name
   revision_mode                = "Single"
+
+  registry {
+    server               = azurerm_container_registry.main.login_server
+    username             = azurerm_container_registry.main.admin_username
+    password_secret_name = "acr-password"
+  }
+
+  secrets {
+    name  = "acr-password"
+    value = azurerm_container_registry.main.admin_password
+  }
 
   template {
     container {
@@ -295,6 +327,17 @@ resource "azurerm_container_app" "api_gateway" {
   resource_group_name          = azurerm_resource_group.main.name
   revision_mode                = "Single"
 
+  registry {
+    server               = azurerm_container_registry.main.login_server
+    username             = azurerm_container_registry.main.admin_username
+    password_secret_name = "acr-password"
+  }
+
+  secrets {
+    name  = "acr-password"
+    value = azurerm_container_registry.main.admin_password
+  }
+
   template {
     container {
       name   = "api-gateway"
@@ -335,6 +378,17 @@ resource "azurerm_container_app" "frontend" {
   resource_group_name          = azurerm_resource_group.main.name
   revision_mode                = "Single"
 
+  registry {
+    server               = azurerm_container_registry.main.login_server
+    username             = azurerm_container_registry.main.admin_username
+    password_secret_name = "acr-password"
+  }
+
+  secrets {
+    name  = "acr-password"
+    value = azurerm_container_registry.main.admin_password
+  }
+
   template {
     container {
       name   = "frontend"
@@ -374,6 +428,17 @@ resource "azurerm_container_app" "log_message_processor" {
   container_app_environment_id = azurerm_container_app_environment.main.id
   resource_group_name          = azurerm_resource_group.main.name
   revision_mode                = "Single"
+
+  registry {
+    server               = azurerm_container_registry.main.login_server
+    username             = azurerm_container_registry.main.admin_username
+    password_secret_name = "acr-password"
+  }
+
+  secrets {
+    name  = "acr-password"
+    value = azurerm_container_registry.main.admin_password
+  }
 
   template {
     container {
