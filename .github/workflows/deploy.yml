@@ -6,6 +6,7 @@ on:
       - migrate-to-azure
   workflow_dispatch:
 
+# enviroment variables
 env:
   TERRAFORM_DIRECTORY: './terraform'
   TF_VAR_location: 'East US'
