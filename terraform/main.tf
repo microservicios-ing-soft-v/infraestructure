@@ -60,13 +60,13 @@ resource "azurerm_key_vault_access_policy" "pipeline_secrets_access" {
   ]
 }
 
-# Log Analytics workspace for Container Apps
+# Log Analytics workspace for Container Apps (configuración mínima)
 resource "azurerm_log_analytics_workspace" "main" {
   name                = "log-${var.prefix}-${random_string.suffix.result}"
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
-  sku                 = "PerGB2018"
-  retention_in_days   = 30
+  sku                 = "PerGB2018"  # Este es el más económico
+  retention_in_days   = 30           # Mínimo valor permitido
 }
 
 # Random string for uniqueness
@@ -99,16 +99,32 @@ resource "azurerm_subnet" "container_apps" {
   address_prefixes     = ["10.0.1.0/24"]
 }
 
-# Redis Cache (replacing the Docker container)
-resource "azurerm_redis_cache" "main" {
-  name                = "redis-${var.prefix}-${random_string.suffix.result}"
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
-  capacity            = 0
-  family              = "C"
-  sku_name            = "Basic"
-  enable_non_ssl_port = true
-  minimum_tls_version = "1.2"
+# Redis como Container App en lugar de servicio administrado
+resource "azurerm_container_app" "redis" {
+  name                         = "redis"
+  container_app_environment_id = azurerm_container_app_environment.main.id
+  resource_group_name          = azurerm_resource_group.main.name
+  revision_mode                = "Single"
+
+  template {
+    container {
+      name   = "redis"
+      image  = "redis:7.0-alpine"
+      cpu    = 0.5
+      memory = "1Gi"
+      
+      command = ["redis-server", "--save", "20", "1", "--loglevel", "warning"]
+    }
+  }
+
+  ingress {
+    external_enabled = false
+    target_port      = 6379
+    traffic_weight {
+      percentage = 100
+      latest_revision = true
+    }
+  }
 }
 
 # Container Apps
@@ -142,7 +158,6 @@ resource "azurerm_container_app" "zipkin" {
   }
 }
 
-# Container Apps con autenticación ACR
 resource "azurerm_container_app" "users_api" {
   name                         = "users-api"
   container_app_environment_id = azurerm_container_app_environment.main.id
@@ -296,7 +311,7 @@ resource "azurerm_container_app" "todos_api" {
       
       env {
         name  = "REDIS_HOST"
-        value = azurerm_redis_cache.main.hostname
+        value = "redis.${azurerm_container_app_environment.main.default_domain}"
       }
       
       env {
@@ -449,7 +464,7 @@ resource "azurerm_container_app" "log_message_processor" {
       
       env {
         name  = "REDIS_HOST"
-        value = azurerm_redis_cache.main.hostname
+        value = "redis.${azurerm_container_app_environment.main.default_domain}"
       }
       
       env {
