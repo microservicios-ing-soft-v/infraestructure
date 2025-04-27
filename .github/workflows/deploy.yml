@@ -36,6 +36,16 @@ jobs:
               "tenantId": "${{ secrets.AZURE_TENANT_ID }}",
               "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
             }
+            
+      - name: Register Microsoft.App Resource Provider
+        run: |
+          az provider register --namespace Microsoft.App
+          echo "Waiting for Microsoft.App registration to complete..."
+          until $(az provider show -n Microsoft.App --query "registrationState" -o tsv | grep -q "Registered"); do
+            echo "Still registering Microsoft.App provider..."
+            sleep 10
+          done
+          echo "Microsoft.App provider is now registered"
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
