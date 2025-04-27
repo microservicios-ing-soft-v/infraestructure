@@ -172,7 +172,7 @@ resource "azurerm_container_app" "users_api" {
       # El volumen debe configurarse aquí, dentro del bloque container
       volume_mounts {
         name       = "users-data"
-        mount_path = "/app/data"
+        path = "/app/data"
       }
     }
     
