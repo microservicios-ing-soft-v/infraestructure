@@ -155,7 +155,7 @@ resource "azurerm_container_app" "users_api" {
     password_secret_name = "acr-password"
   }
 
-  secrets {
+  secret {
     name  = "acr-password"
     value = azurerm_container_registry.main.admin_password
   }
@@ -216,7 +216,7 @@ resource "azurerm_container_app" "auth_api" {
     password_secret_name = "acr-password"
   }
 
-  secrets {
+  secret {
     name  = "acr-password"
     value = azurerm_container_registry.main.admin_password
   }
@@ -272,7 +272,7 @@ resource "azurerm_container_app" "todos_api" {
     password_secret_name = "acr-password"
   }
 
-  secrets {
+  secret {
     name  = "acr-password"
     value = azurerm_container_registry.main.admin_password
   }
@@ -333,7 +333,7 @@ resource "azurerm_container_app" "api_gateway" {
     password_secret_name = "acr-password"
   }
 
-  secrets {
+  secret {
     name  = "acr-password"
     value = azurerm_container_registry.main.admin_password
   }
@@ -384,7 +384,7 @@ resource "azurerm_container_app" "frontend" {
     password_secret_name = "acr-password"
   }
 
-  secrets {
+  secret {
     name  = "acr-password"
     value = azurerm_container_registry.main.admin_password
   }
@@ -435,7 +435,7 @@ resource "azurerm_container_app" "log_message_processor" {
     password_secret_name = "acr-password"
   }
 
-  secrets {
+  secret {
     name  = "acr-password"
     value = azurerm_container_registry.main.admin_password
   }
