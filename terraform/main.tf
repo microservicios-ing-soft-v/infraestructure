@@ -168,12 +168,18 @@ resource "azurerm_container_app" "users_api" {
         name  = "ZIPKIN_URL"
         value = "http://zipkin.${azurerm_container_app_environment.main.default_domain}:9411/"
       }
+      
+      # El volumen debe configurarse aquí, dentro del bloque container
+      volume_mounts {
+        name       = "users-data"
+        mount_path = "/app/data"
+      }
     }
     
+    # Y la definición del volumen va aquí, en el bloque template
     volume {
       name         = "users-data"
       storage_type = "EmptyDir"
-      mount_path   = "/app/data"
     }
   }
 
