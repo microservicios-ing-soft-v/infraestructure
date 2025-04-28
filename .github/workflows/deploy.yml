@@ -14,7 +14,7 @@ on:
         options:
           - 'true'
           - 'false'
-# r
+# ru
 env:
   TERRAFORM_DIRECTORY: './terraform'
   TF_VAR_location: 'East US'
