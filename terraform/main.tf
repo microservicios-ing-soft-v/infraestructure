@@ -33,6 +33,31 @@ resource "azurerm_network_security_group" "main" {
     source_address_prefix      = "0.0.0.0/0"
     destination_address_prefix = "*"
   }
+
+  security_rule {
+    name                         = "Allow-8080"
+    priority                     = 1002
+    direction                    = "Inbound"
+    access                       = "Allow"
+    protocol                     = "Tcp"
+    source_port_range            = "*"
+    destination_port_range       = "8080"
+    source_address_prefix        = "0.0.0.0/0"
+    destination_address_prefix   = "*"
+  }
+
+  # Added rule to allow inbound traffic on port 9411
+  security_rule {
+    name                         = "Allow-9411"
+    priority                     = 1003
+    direction                    = "Inbound"
+    access                       = "Allow"
+    protocol                     = "Tcp"
+    source_port_range            = "*"
+    destination_port_range       = "9411"
+    source_address_prefix        = "0.0.0.0/0"
+    destination_address_prefix   = "*"
+  }
 }
 
 resource "azurerm_public_ip" "main" {
